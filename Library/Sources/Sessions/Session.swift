@@ -24,6 +24,10 @@ public protocol Session: class {
     /// - parameter rawToken: token raw string
     /// - parameter expires: token expires time from now. Zero is infinite token.
     func logIn(rawToken: String, expires: TimeInterval) throws
+    /// Get VK auth code for server usage
+    /// - parameter onSuccess: closure which will be executed when user sucessfully getting code.
+    /// - parameter onError: closure which will be executed when getting code failed.
+    func getCode(onSuccess: @escaping (String) -> (), onError: @escaping RequestCallbacks.Error)
     /// Log out user, remove all data and destroy current session
     func logOut()
     /// Send request in this session
@@ -167,6 +171,22 @@ public final class SessionImpl: Session, TaskSession, DestroyableSession, ApiErr
         self.token = token
         
         return token.info
+    }
+    
+    public func getCode(onSuccess: @escaping (String) -> (), onError: @escaping RequestCallbacks.Error) {
+        gateQueue.async {
+            do {
+                let info = try self.getCode()
+                DispatchQueue.global().async {
+                    onSuccess(info)
+                }
+            }
+            catch let error {
+                DispatchQueue.global().async {
+                    onError(error.toVK())
+                }
+            }
+        }
     }
     
     func getCode() throws -> String {
