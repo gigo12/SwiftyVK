@@ -53,12 +53,13 @@ protocol DestroyableSession: Session {
 
 protocol ApiErrorExecutor {
     func logIn(revoke: Bool) throws -> [String: String]
+    func getCode() throws -> String
     func validate(redirectUrl: URL) throws
     func captcha(rawUrlToImage: String, dismissOnFinish: Bool) throws -> String
 }
 
 public final class SessionImpl: Session, TaskSession, DestroyableSession, ApiErrorExecutor {
-
+    
     public var config: SessionConfig {
         didSet {
             sessionSaver?.saveState()
@@ -93,7 +94,7 @@ public final class SessionImpl: Session, TaskSession, DestroyableSession, ApiErr
     public var accessToken: Token? {
         return token
     }
-
+    
     private let taskSheduler: TaskSheduler
     private let attemptSheduler: AttemptSheduler
     private let authorizator: Authorizator
@@ -151,7 +152,7 @@ public final class SessionImpl: Session, TaskSession, DestroyableSession, ApiErr
             }
         }
     }
-   
+    
     @discardableResult
     func logIn(revoke: Bool) throws -> [String: String] {
         try throwIfDestroyed()
@@ -166,6 +167,19 @@ public final class SessionImpl: Session, TaskSession, DestroyableSession, ApiErr
         self.token = token
         
         return token.info
+    }
+    
+    func getCode() throws -> String {
+        try throwIfDestroyed()
+        try throwIfAuthorized()
+        
+        let code = try authorizator.getCode(
+            sessionId: id,
+            config: config,
+            revoke: true
+        )
+        
+        return code
     }
     
     public func logIn(rawToken: String, expires: TimeInterval) throws {
@@ -209,12 +223,12 @@ public final class SessionImpl: Session, TaskSession, DestroyableSession, ApiErr
     public func send(method: SendableMethod) -> Task {
         let request = method.toRequest()
         request.config.inject(sessionConfig: config)
-
+        
         let task = taskMaker.task(
             request: request,
             session: self
         )
-    
+        
         do {
             try throwIfDestroyed()
             try shedule(task: task)
@@ -290,7 +304,7 @@ public final class SessionImpl: Session, TaskSession, DestroyableSession, ApiErr
     }
     
     private func sendTokenChangeEvent(from oldToken: Token?, to newToken: Token?) {
-    
+        
         DispatchQueue.global().async { [id] in
             if oldToken != nil, let newToken = newToken {
                 self.delegate?.vkTokenUpdated(for: id, info: newToken.info)

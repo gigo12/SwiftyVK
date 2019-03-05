@@ -12,6 +12,7 @@ public indirect enum VKError: Error {
     case cantSaveToKeychain(Int32)
     case vkDelegateNotFound
     case cantParseTokenInfo(String)
+    case cantParseCodeInfo(String)
     case sessionAlreadyDestroyed(Session)
     case sessionAlreadyAuthorized(Session)
     case sessionIsNotAuthorized(Session)
