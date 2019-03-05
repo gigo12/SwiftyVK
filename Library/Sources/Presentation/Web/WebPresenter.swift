@@ -57,9 +57,9 @@ final class WebPresenterImpl: WebPresenter {
         let state = LoadingState(originalPath: urlRequest.url?.path ?? "")
         
         return try uiSyncQueue.sync {
-            let controller = controllerMaker.webController {
+            let controller = controllerMaker.webController(onDismiss: {
                 semaphore.signal()
-            }
+            })
             
             // This is a hack to avoid crash while WebKit deinitializing not in the main thread
             // https://github.com/SwiftyVK/SwiftyVK/issues/142
@@ -144,6 +144,9 @@ final class WebPresenterImpl: WebPresenter {
             return .response(fragment)
         }
         else if fragment.contains("success=1") {
+            return .response(fragment)
+        }
+        else if fragment.contains("code=") {
             return .response(fragment)
         }
         else if fragment.contains("access_denied") {
