@@ -287,7 +287,6 @@ final class AuthorizatorImpl: Authorizator {
             redirect = ""
         }
         
-        
         return "client_id=\(appId)&"
             + "scope=\(scopes)&"
             + "display=mobile&"
